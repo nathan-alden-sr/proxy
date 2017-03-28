@@ -1,3 +1,3 @@
-# NathanAlden.NtlmProxy
+# NathanAlden.Proxy
 
-NathanAlden.NtlmProxy is a proxy server written in .NET Core.
+NathanAlden.Proxy is a proxy server written in .NET Core.
