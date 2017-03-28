@@ -1,10 +1,10 @@
 ﻿bindings:
-  ipAddresses:              # The proxy will listen for connections on these IP addresses. IPv4 and IPv6 addresses are supported. Default is 127.0.0.1 and ::1.
-  - "127.0.0.1"
-  - "::1"
-  port: 3128                # The proxy will listen on this port. Default is 3128.
+  ipAddresses:                 # The proxy will listen for connections on these IP addresses. IPv4 and IPv6 addresses are supported. Default is 127.0.0.1 and ::1.
+  - 127.0.0.1
+  - ::1
+  port: 3128                   # The proxy will listen on this port. Default is 3128.
 
-disallowedHosts:            # Proxying to these hosts is disallowed. Effective disallowed hosts include all binding IP addresses. IP, CIDR, domain name, and domain name suffix formats are supported.
+disallowedHosts:               # Proxying to these hosts is disallowed. Effective disallowed hosts include all binding IP addresses. IP, CIDR, domain name, and domain name suffix formats are supported.
 #  - 10.1.2.3
 #  - 10.0.0.0/8
 #  - 2001:0db8:85a3:0000:0000:8a2e:0370:7334
@@ -14,20 +14,20 @@ disallowedHosts:            # Proxying to these hosts is disallowed. Effective d
 
 forwardProxies:
 #  http:
-#    host: example.com      # The hostname of the forward proxy. This can be an IPv4/IPv6 address or a domain name.
-#    port: 80               # The port of the forward proxy.
+#    host: example.com         # The hostname of the forward proxy. This can be an IPv4/IPv6 address or a domain name.
+#    port: 80                  # The port of the forward proxy.
 #    authentication:
-#      basic:               # Basic proxy authentication.
-#        enabled: true      # Determines if the proxy will automatically supply basic credentials in response to 407 Proxy Authentication Required responses. Default is false.
-#        username: foo      # The user will be prompted to supply username if this value is empty.
+#      basic:                  # Basic proxy authentication.
+#        enabled: true         # Determines if the proxy will automatically supply basic credentials in response to 407 Proxy Authentication Required responses. Default is false.
+#        username:             # The user will be prompted to supply username if this value is empty.
 #  https:
 #    host: example.com
 #    port: 80
 #    authentication:
 #      basic:
 #        enabled: true
-#        username: foo
-#  noProxyHosts:            # Requests to these hosts will not be proxied. IP, CIDR, domain name, and domain name suffix formats are supported.
+#        username:
+#  noProxyHosts:               # Requests to these hosts will not be proxied. IP, CIDR, domain name, and domain name suffix formats are supported.
 #  - 10.1.2.3
 #  - 10.0.0.0/8
 #  - 2001:0db8:85a3:0000:0000:8a2e:0370:7334
@@ -36,5 +36,8 @@ forwardProxies:
 #  - .example.com
 
 sockets:
-  receiveTimeout: 120000    # The timeout, in milliseconds, of all socket receive operations. Default is 120000 (2 minutes).
-  sendTimeout: 120000       # The timeout, in milliseconds, of all socket send operations. Default is 120000 (2 minutes).
+  receiveTimeout: 120000       # The timeout, in milliseconds, of all socket receive operations. Default is 120000 (2 minutes).
+  sendTimeout: 120000          # The timeout, in milliseconds, of all socket send operations. Default is 120000 (2 minutes).
+
+options:
+  sendProxyAgentHeader: false  # Determines whether a Proxy-Agent header will be sent with certain requests or responses.

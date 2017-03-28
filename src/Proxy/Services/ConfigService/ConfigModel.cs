@@ -13,6 +13,7 @@ namespace NathanAlden.Proxy.Services.ConfigService
         private BindingsModel _bindings = new BindingsModel();
         private IEnumerable<string> _disallowedHosts = Enumerable.Empty<string>();
         private ForwardProxiesModel _forwardProxies = new ForwardProxiesModel();
+        private OptionsModel _options = new OptionsModel();
         private SocketsModel _sockets = new SocketsModel();
 
         public BindingsModel Bindings
@@ -39,6 +40,12 @@ namespace NathanAlden.Proxy.Services.ConfigService
         {
             get => _sockets;
             set => _sockets = value ?? new SocketsModel();
+        }
+
+        public OptionsModel Options
+        {
+            get => _options;
+            set => _options = value ?? new OptionsModel();
         }
 
         public class BindingsModel
@@ -115,6 +122,11 @@ namespace NathanAlden.Proxy.Services.ConfigService
         {
             public int ReceiveTimeout { get; set; } = 120000;
             public int SendTimeout { get; set; } = 120000;
+        }
+
+        public class OptionsModel
+        {
+            public bool SendProxyAgentHeader { get; set; }
         }
     }
 }

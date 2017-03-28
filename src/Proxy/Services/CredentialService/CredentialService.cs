@@ -46,14 +46,12 @@ namespace NathanAlden.Proxy.Services.CredentialService
                         case ConsoleKey.Backspace:
                             if (stringBuilder.Length > 0)
                             {
-                                Console.Write("\b\0\b");
                                 stringBuilder.Length--;
                             }
                             break;
                         default:
                             if (!char.IsControl(consoleKeyInfo.KeyChar))
                             {
-                                Console.Write('*');
                                 stringBuilder.Append(consoleKeyInfo.KeyChar);
                             }
                             break;

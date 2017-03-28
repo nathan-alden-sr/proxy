@@ -25,6 +25,7 @@ namespace NathanAlden.Proxy.Services.DownstreamClientService
         private static readonly IEnumerable<string> _validAbsoluteUriSchemes = new[] { "http", "https" };
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private readonly Subject<Unit> _closedByClient = new Subject<Unit>();
+        private readonly IConfigService _configService;
         private readonly ICredentialService _credentialService;
         private readonly IEnumerable<Host> _disallowedHosts;
         private readonly IHttpClient _downstreamClient;
@@ -38,6 +39,7 @@ namespace NathanAlden.Proxy.Services.DownstreamClientService
         {
             _httpClientFactory = httpClientFactory;
             _credentialService = credentialService;
+            _configService = configService;
 
             _downstreamClient = httpClientFactory.Create(client);
             _disallowedHosts = configService.Config.ParsedDisallowedHosts.ToImmutableArray();
@@ -174,7 +176,10 @@ namespace NathanAlden.Proxy.Services.DownstreamClientService
                              var responseStatusLine = new ResponseStatusLine(requestLine.HttpVersion, 200);
 
                              _downstreamClient.WriteResponeStatusLine(responseStatusLine);
-                             _downstreamClient.WriteHeaders(Header.Parse($"Proxy-Agent: {typeof(Program).Namespace}"));
+                             if (_configService.Config.Options.SendProxyAgentHeader)
+                             {
+                                 _downstreamClient.WriteHeaders(Header.Parse($"Proxy-Agent: {typeof(Program).Namespace}"));
+                             }
                              _downstreamClient.WriteNewLine();
                              _downstreamClient.FlushStream();
 
@@ -186,7 +191,10 @@ namespace NathanAlden.Proxy.Services.DownstreamClientService
                              {
                                  _upstreamServer.WriteRequestLine(requestLine);
                                  _upstreamServer.WriteHeaders(headers);
-                                 _upstreamServer.WriteHeaders(Header.Parse($"Proxy-Agent: {typeof(Program).Namespace}"));
+                                 if (_configService.Config.Options.SendProxyAgentHeader)
+                                 {
+                                     _upstreamServer.WriteHeaders(Header.Parse($"Proxy-Agent: {typeof(Program).Namespace}"));
+                                 }
                                  _upstreamServer.WriteHeaders(additionalHeaders);
                                  _upstreamServer.WriteNewLine();
                                  _upstreamServer.FlushStream();
