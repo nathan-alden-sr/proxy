@@ -13,7 +13,7 @@ namespace NathanAlden.Proxy.Services.ConfigService
         private readonly Lazy<ConfigModel> _config = new Lazy<ConfigModel>(
             () =>
             {
-                string configPath = Path.Combine(Directory.GetCurrentDirectory(), "config.yml");
+                string configPath = Path.Combine(AppContext.BaseDirectory, "config.yml");
 
                 if (File.Exists(configPath))
                 {
