@@ -16,9 +16,11 @@ namespace NathanAlden.Proxy
 
         public static int Main()
         {
-            Console.WriteLine("NTLM Proxy");
+            Console.Title = "NathanAlden.Proxy";
+
+            Console.WriteLine("Proxy");
             Console.WriteLine("Written by Nathan Alden, Sr.");
-            Console.WriteLine("https://github.com/nathan-alden/ntlm-proxy");
+            Console.WriteLine("https://github.com/nathan-alden/proxy");
             Console.WriteLine();
             Console.WriteLine("Press CTRL+C to exit");
             Console.WriteLine();
