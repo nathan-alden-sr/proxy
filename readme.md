@@ -2,9 +2,18 @@
 
 NathanAlden.Proxy is a proxy server written in C# and .NET Core.
 
+## Downloads
+
+See the [Releases](releases) page.
+
+## System Requirements
+
+* Any host OS that supports .NET Core (e.g., Windows, Linux, and macOS)
+* [.NET Core 1.1.1 Runtime](https://www.microsoft.com/net/download/core#/runtime)
+
 ## Features
 
-### Compatible with corporate domains and proxies, and restrictive Windows Firewall configurations
+### Compatible with corporate domains, proxies, and restrictive Windows Firewall configurations
 
 Consider the following scenario:
 * A user's runs Windows as their host OS; Windows is connected to a corporate domain
@@ -51,4 +60,36 @@ forwardProxies:
         enabled: true
   noProxyHosts:
   - .corporatenetwork.com
+```
+
+### Forward proxy support
+
+As described above, NathanAlden.Proxy supports optional forward proxies for both HTTP and HTTPS connections.
+
+### Disallowed hosts
+
+NathanAlden.Proxy can reject incoming requests destined for certain hosts. By default, NathanAlden.Proxy will reject hosts of the proxy itself to prevent endless forwarding loops. IPv4 and IPv6 addresses, CIDR, domain name, and domain name suffix formats are supported.
+
+Example configuration:
+
+```YAML
+disallowedHosts:
+- 10.1.2.3
+- 10.0.0.0/8
+- 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+- 2001:db8:/32
+- example.com
+- .example.com
+```
+
+### Socket configuration
+
+Receive and send timeouts can be tweaked. Timeouts are in milliseconds.
+
+Example configuration:
+
+```YAML
+sockets:
+  receiveTimeout: 60000
+  sendTimeout: 60000
 ```
