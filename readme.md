@@ -2,14 +2,16 @@
 
 NathanAlden.Proxy is a proxy server written in C# and .NET Core.
 
-## Downloads
-
-See the [Releases](https://github.com/nathan-alden/proxy/releases) page.
-
 ## System Requirements
 
-* Any host OS that supports .NET Core (e.g., Windows, Linux, and macOS)
-* [.NET Core 1.1.1 Runtime](https://www.microsoft.com/net/download/core#/runtime)
+* Any OS that supports .NET Core 1.1.1 (e.g., Windows, Linux, and macOS)
+* [.NET Core 1.1.1 runtime](https://www.microsoft.com/net/download/core#/runtime)
+
+## Downloading and Running the Application
+
+1. Download and extract a [release](https://github.com/nathan-alden/proxy/releases).
+2. Edit the `config.yml` file included with the release. `config.yml` includes extensive comments to help make configuration easier.
+3. Run the following command from the CLI: `dotnet /path/to/NathanAlden.Proxy.dll`.
 
 ## Features
 
