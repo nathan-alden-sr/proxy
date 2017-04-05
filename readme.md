@@ -4,7 +4,7 @@ NathanAlden.Proxy is a proxy server written in C# and .NET Core.
 
 ## Downloads
 
-See the [Releases](releases) page.
+See the [Releases](https://github.com/nathan-alden/proxy/releases) page.
 
 ## System Requirements
 
