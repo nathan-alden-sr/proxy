@@ -175,15 +175,36 @@ namespace NathanAlden.Proxy.Services.DownstreamClientService
                          {
                              var responseStatusLine = new ResponseStatusLine(requestLine.HttpVersion, 200);
 
-                             _downstreamClient.WriteResponeStatusLine(responseStatusLine);
+                             _downstreamClient.WriteResponseStatusLine(responseStatusLine);
                              if (_configService.Config.Options.SendProxyAgentHeader)
                              {
-                                 _downstreamClient.WriteHeaders(Header.Parse($"Proxy-Agent: {typeof(Program).Namespace}"));
+                                 _downstreamClient.WriteHeader("Proxy-Agent", typeof(Program).Namespace);
                              }
                              _downstreamClient.WriteNewLine();
-                             _downstreamClient.FlushStream();
+                             _downstreamClient.Flush();
 
                              LogDownstreamText(LogEventLevel.Information).LeftArrow(true).Text(responseStatusLine.ToString()).Write();
+                             LogForwardProxyText(LogEventLevel.Information).LeftArrow(true).Text($"{requestLine}{(hostHeader != null ? $", {hostHeader}" : "")}").Write();
+
+                             _upstreamServer.WriteRequestLine(requestLine);
+                             _upstreamServer.WriteHeaders(hostHeader);
+                             _upstreamServer.WriteNewLine();
+
+                             (GetResponseStatusLineResult result, ResponseStatusLine responseStatusLine) responseStatusLineResult = _upstreamServer.GetResponseStatusLine();
+
+                             switch (responseStatusLineResult.result)
+                             {
+                                 case GetResponseStatusLineResult.Success:
+                                     LogForwardProxyText(LogEventLevel.Information).RightArrow(true).Text(responseStatusLineResult.responseStatusLine.ToString()).Write();
+                                     break;
+                                 case GetResponseStatusLineResult.InvalidResponseStatusLine:
+                                     LogForwardProxyText(LogEventLevel.Error, "Invalid response status line").Write();
+                                     break;
+                                 default:
+                                     throw new ArgumentOutOfRangeException();
+                             }
+
+                             _upstreamServer.GetHeaders();
                          }
                          else
                          {
@@ -197,7 +218,7 @@ namespace NathanAlden.Proxy.Services.DownstreamClientService
                                  }
                                  _upstreamServer.WriteHeaders(additionalHeaders);
                                  _upstreamServer.WriteNewLine();
-                                 _upstreamServer.FlushStream();
+                                 _upstreamServer.Flush();
                              }
 
                              WriteUpstreamServerRequest();
@@ -232,7 +253,7 @@ namespace NathanAlden.Proxy.Services.DownstreamClientService
                                              throw new ArgumentOutOfRangeException();
                                      }
 
-                                     LogForwardProxyText(LogEventLevel.Warning, $"-> {getResponseStatusLineResult.responseStatusLine}").Write();
+                                     LogForwardProxyText(LogEventLevel.Warning).RightArrow(true).Text(getResponseStatusLineResult.responseStatusLine.ToString()).Write();
 
                                      if (!await ConnectToUpstreamServerAsync())
                                      {
@@ -242,13 +263,13 @@ namespace NathanAlden.Proxy.Services.DownstreamClientService
                                      (GetCredentialsResult result, string username, string clearTextPassword) getCredentialsResult = _credentialService.GetCredentials();
                                      string base64Credential = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{getCredentialsResult.username}:{getCredentialsResult.clearTextPassword}"));
 
-                                     LogForwardProxyText(LogEventLevel.Warning, "<- Proxy authorization").Write();
+                                     LogForwardProxyText(LogEventLevel.Warning).LeftArrow(true).Text("Proxy authorization").Write();
 
                                      WriteUpstreamServerRequest(new Header("Proxy-Authorization", $"Basic {base64Credential}"));
                                  }
                                  else
                                  {
-                                     _downstreamClient.WriteResponeStatusLine(getResponseStatusLineResult.responseStatusLine);
+                                     _downstreamClient.WriteResponseStatusLine(getResponseStatusLineResult.responseStatusLine);
                                  }
                              }
                          }
@@ -263,19 +284,19 @@ namespace NathanAlden.Proxy.Services.DownstreamClientService
                                       {
                                           while (true)
                                           {
-                                              byte[] buffer = _downstreamClient.ReadFromStream();
+                                              ArraySegment<byte> arraySegment = _downstreamClient.Read();
 
-                                              if (buffer.Length == 0)
+                                              if (arraySegment.Count == 0)
                                               {
                                                   break;
                                               }
 
-                                              _upstreamServer.WriteToStream(buffer);
-                                              _upstreamServer.FlushStream();
+                                              _upstreamServer.Write(arraySegment);
+                                              _upstreamServer.Flush();
 
                                               LogDownstreamText(LogEventLevel.Verbose)
                                                   .RightArrow(true)
-                                                  .Text($"{buffer.Length} byte{(buffer.Length == 1 ? "" : "s")}")
+                                                  .Text($"{arraySegment.Count} byte{(arraySegment.Count == 1 ? "" : "s")}")
                                                   .RightArrow(true)
                                                   .UpstreamIdentifier(Id)
                                                   .Space()
@@ -301,19 +322,19 @@ namespace NathanAlden.Proxy.Services.DownstreamClientService
                                       {
                                           while (true)
                                           {
-                                              byte[] buffer = _upstreamServer.ReadFromStream();
+                                              ArraySegment<byte> arraySegment = _upstreamServer.Read();
 
-                                              if (buffer.Length == 0)
+                                              if (arraySegment.Count == 0)
                                               {
                                                   break;
                                               }
 
-                                              _downstreamClient.WriteToStream(buffer);
-                                              _downstreamClient.FlushStream();
+                                              _downstreamClient.Write(arraySegment);
+                                              _downstreamClient.Flush();
 
                                               (forwardProxy != null ? LogForwardProxyText(LogEventLevel.Verbose) : LogUpstreamText(LogEventLevel.Verbose))
                                                   .RightArrow(true)
-                                                  .Text($"{buffer.Length} byte{(buffer.Length == 1 ? "" : "s")}")
+                                                  .Text($"{arraySegment.Count} byte{(arraySegment.Count == 1 ? "" : "s")}")
                                                   .RightArrow(true)
                                                   .DownstreamIdentifier(Id)
                                                   .Space()

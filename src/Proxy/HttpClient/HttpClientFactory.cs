@@ -1,10 +1,12 @@
 ﻿using System.Net.Sockets;
 using NathanAlden.Proxy.Services.ConfigService;
+using NathanAlden.Proxy.Tcp;
 
 namespace NathanAlden.Proxy.HttpClient
 {
     public class HttpClientFactory : IHttpClientFactory
     {
+        private const int BufferSize = 8192;
         private readonly IConfigService _configService;
 
         public HttpClientFactory(IConfigService configService)
@@ -14,7 +16,9 @@ namespace NathanAlden.Proxy.HttpClient
 
         public IHttpClient Create(TcpClient client)
         {
-            return new HttpClient(client, _configService.Config);
+            var clientWrapper = new TcpClientWrapper(client, BufferSize, _configService.Config.Sockets.ReceiveTimeout, BufferSize, _configService.Config.Sockets.SendTimeout, BufferSize);
+
+            return new HttpClient(clientWrapper);
         }
     }
 }

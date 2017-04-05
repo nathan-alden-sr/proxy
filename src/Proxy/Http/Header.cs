@@ -7,6 +7,7 @@ namespace NathanAlden.Proxy.Http
     public class Header
     {
         private static readonly char[] _colon = { ':' };
+        private static readonly char[] _space = { ' ' };
 
         public Header(string name, string value)
         {
@@ -18,17 +19,16 @@ namespace NathanAlden.Proxy.Http
         public string Value { get; }
         private string DebuggerDisplay => ToString();
 
-        public static Header Parse(string header)
-        {
-            string[] headerParts = header.Split(_colon, 2, StringSplitOptions.RemoveEmptyEntries);
-            string value = headerParts.Length == 2 ? headerParts[1].Trim(' ') : null;
-
-            return !string.IsNullOrEmpty(value) ? new Header(headerParts[0], value) : null;
-        }
-
         public override string ToString()
         {
             return $"{Name}: {Value}";
+        }
+
+        public static Header Parse(string header)
+        {
+            string[] headerParts = header.Split(_colon, 2, StringSplitOptions.RemoveEmptyEntries);
+
+            return headerParts.Length == 2 ? new Header(headerParts[0], headerParts[1].Trim(_space)) : null;
         }
     }
 }

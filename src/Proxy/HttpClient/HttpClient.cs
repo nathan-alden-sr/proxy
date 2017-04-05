@@ -1,110 +1,114 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Net;
-using System.Net.Sockets;
 using System.Text;
 using NathanAlden.Proxy.Http;
-using NathanAlden.Proxy.Services.ConfigService;
 using NathanAlden.Proxy.Tcp;
 
 namespace NathanAlden.Proxy.HttpClient
 {
     public class HttpClient : IHttpClient
     {
-        private const byte CarriageReturn = (byte)'\r';
-        private const byte LineFeed = (byte)'\n';
-        private const string NewLine = "\r\n";
+        private readonly ArraySegmentsToHttpHeaderLines _arraySegmentsToHttpHeaderLines = new ArraySegmentsToHttpHeaderLines();
         private readonly TcpClientWrapper _clientWrapper;
+        private readonly Queue<(HttpHeaderLineType lineType, string line)> _headerLines = new Queue<(HttpHeaderLineType lineType, string line)>();
         private readonly List<Header> _headers = new List<Header>();
-        private byte[] _buffer = new byte[0];
-        private bool _headersRead;
+        private bool _headersComplete;
         private RequestLine _requestLine;
         private ResponseStatusLine _responseStatusLine;
 
-        public HttpClient(TcpClient client, ConfigModel config)
+        public HttpClient(TcpClientWrapper clientWrapper)
         {
-            _clientWrapper = new TcpClientWrapper(client, config);
-            Endpoint = (IPEndPoint)client.Client.RemoteEndPoint;
+            _clientWrapper = clientWrapper;
         }
 
-        public IPEndPoint Endpoint { get; }
+        public IPEndPoint Endpoint => _clientWrapper.Endpoint;
 
         public (GetRequestLineResult result, RequestLine requestLine) GetRequestLine()
         {
-            if (_requestLine != null)
+            while (_requestLine == null)
             {
-                return (GetRequestLineResult.Success, _requestLine);
+                ReadHeaderLines(_headerLines);
+
+                if (_headerLines.Count == 0)
+                {
+                    continue;
+                }
+
+                (HttpHeaderLineType lineType, string line) headerLine = _headerLines.Dequeue();
+
+                if (headerLine.lineType != HttpHeaderLineType.RequestLineOrResponseStatusLine)
+                {
+                    return (GetRequestLineResult.InvalidRequestLine, null);
+                }
+
+                _requestLine = RequestLine.Parse(headerLine.line);
             }
 
-            string line = ReadLine();
-
-            _requestLine = RequestLine.Parse(line);
-
-            return _requestLine != null ? (GetRequestLineResult.Success, _requestLine) : (GetRequestLineResult.InvalidRequestLine, (RequestLine)null);
+            return (_requestLine == null ? GetRequestLineResult.InvalidRequestLine : GetRequestLineResult.Success, _requestLine);
         }
 
         public (GetResponseStatusLineResult result, ResponseStatusLine responseStatusLine) GetResponseStatusLine()
         {
-            if (_responseStatusLine != null)
+            while (_responseStatusLine == null)
             {
-                return (GetResponseStatusLineResult.Success, _responseStatusLine);
+                ReadHeaderLines(_headerLines);
+
+                if (_headerLines.Count == 0)
+                {
+                    continue;
+                }
+
+                (HttpHeaderLineType lineType, string line) headerLine = _headerLines.Dequeue();
+
+                if (headerLine.lineType != HttpHeaderLineType.RequestLineOrResponseStatusLine)
+                {
+                    return (GetResponseStatusLineResult.InvalidResponseStatusLine, null);
+                }
+
+                _responseStatusLine = ResponseStatusLine.Parse(headerLine.line);
             }
 
-            string line = ReadLine();
-
-            _responseStatusLine = ResponseStatusLine.Parse(line);
-
-            return _responseStatusLine != null ? (GetResponseStatusLineResult.Success, _responseStatusLine) : (GetResponseStatusLineResult.InvalidResponseStatusLine, (ResponseStatusLine)null);
-        }
-
-        public (ReadHeaderResult result, Header header) ReadHeader()
-        {
-            if (_headersRead)
-            {
-                return (ReadHeaderResult.NoHeadersRemaining, null);
-            }
-
-            string line = ReadLine();
-
-            if (line == "")
-            {
-                _headersRead = true;
-
-                return (ReadHeaderResult.NoHeadersRemaining, null);
-            }
-
-            Header header = Header.Parse(line);
-
-            if (header == null)
-            {
-                return (ReadHeaderResult.InvalidHeader, null);
-            }
-
-            _headers.Add(header);
-
-            return (ReadHeaderResult.Success, header);
+            return (_responseStatusLine == null ? GetResponseStatusLineResult.InvalidResponseStatusLine : GetResponseStatusLineResult.Success, _responseStatusLine);
         }
 
         public (GetHeadersResult result, IEnumerable<Header> headers) GetHeaders()
         {
-            while (!_headersRead)
+            do
             {
-                (ReadHeaderResult readHeaderResult, Header _) = ReadHeader();
-
-                switch (readHeaderResult)
+                while (_headerLines.Count > 0)
                 {
-                    case ReadHeaderResult.Success:
-                    case ReadHeaderResult.NoHeadersRemaining:
-                        break;
-                    case ReadHeaderResult.InvalidHeader:
-                        return (GetHeadersResult.InvalidHeader, null);
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-            }
+                    (HttpHeaderLineType lineType, string line) headerLine = _headerLines.Dequeue();
 
-            return (GetHeadersResult.Success, _headers.ToImmutableArray());
+                    switch (headerLine.lineType)
+                    {
+                        case HttpHeaderLineType.Header:
+                            Header header = Header.Parse(headerLine.line);
+
+                            if (header == null)
+                            {
+                                return (GetHeadersResult.InvalidHeader, null);
+                            }
+
+                            _headers.Add(header);
+                            break;
+                        case HttpHeaderLineType.NewLine:
+                            _headersComplete = true;
+                            break;
+                        case HttpHeaderLineType.RequestLineOrResponseStatusLine:
+                            return (GetHeadersResult.InvalidHeader, null);
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+                }
+
+                if (!_headersComplete)
+                {
+                    ReadHeaderLines(_headerLines);
+                }
+            } while (!_headersComplete);
+
+            return (GetHeadersResult.Success, _headers);
         }
 
         public void WriteRequestLine(RequestLine requestLine)
@@ -112,9 +116,14 @@ namespace NathanAlden.Proxy.HttpClient
             WriteLine(requestLine.ToString());
         }
 
-        public void WriteResponeStatusLine(ResponseStatusLine responseStatusLine)
+        public void WriteResponseStatusLine(ResponseStatusLine responseStatusLine)
         {
             WriteLine(responseStatusLine.ToString());
+        }
+
+        public void WriteHeader(string name, string value)
+        {
+            WriteLine($"{name}: {value}");
         }
 
         public void WriteHeaders(IEnumerable<Header> headers)
@@ -132,20 +141,21 @@ namespace NathanAlden.Proxy.HttpClient
 
         public void WriteNewLine()
         {
-            WriteLine("");
+            _clientWrapper.WriteByte(HttpConstants.CarriageReturn);
+            _clientWrapper.WriteByte(HttpConstants.LineFeed);
         }
 
-        public byte[] ReadFromStream()
+        public ArraySegment<byte> Read()
         {
-            return _buffer.Length > 0 ? FlushBuffer() : _clientWrapper.ReadBytes();
+            return _clientWrapper.Read();
         }
 
-        public void WriteToStream(byte[] buffer)
+        public void Write(ArraySegment<byte> arraySegment)
         {
-            _clientWrapper.WriteBytes(buffer);
+            _clientWrapper.Write(arraySegment);
         }
 
-        public void FlushStream()
+        public void Flush()
         {
             _clientWrapper.Flush();
         }
@@ -155,48 +165,26 @@ namespace NathanAlden.Proxy.HttpClient
             _clientWrapper.Close();
         }
 
-        private string ReadLine()
+        private void ReadHeaderLines(Queue<(HttpHeaderLineType lineType, string line)> headerLines)
         {
-            while (true)
-            {
-                int carriageReturnIndex = Array.IndexOf(_buffer, CarriageReturn);
+            ArraySegment<byte> arraySegment = _clientWrapper.Read();
 
-                if (carriageReturnIndex != -1 && carriageReturnIndex < _buffer.Length - 1 && _buffer[carriageReturnIndex + 1] == LineFeed)
-                {
-                    string value = Encoding.ASCII.GetString(_buffer, 0, carriageReturnIndex);
-                    int copyIndex = carriageReturnIndex + 2;
-                    int newSize = _buffer.Length - copyIndex;
-
-                    Array.Copy(_buffer, copyIndex, _buffer, 0, newSize);
-                    Array.Resize(ref _buffer, newSize);
-
-                    return value;
-                }
-                else
-                {
-                    byte[] buffer = ReadFromStream();
-                    int copyIndex = _buffer.Length;
-
-                    Array.Resize(ref _buffer, copyIndex + buffer.Length);
-                    Array.Copy(buffer, 0, _buffer, copyIndex, buffer.Length);
-                }
-            }
+            PushHeaderLinesToStack(_arraySegmentsToHttpHeaderLines.Add(arraySegment), headerLines);
         }
 
         private void WriteLine(string line)
         {
-            byte[] buffer = Encoding.ASCII.GetBytes($"{line}{NewLine}");
+            byte[] buffer = Encoding.ASCII.GetBytes($"{line}{HttpConstants.NewLine}");
 
-            WriteToStream(buffer);
+            _clientWrapper.Write(new ArraySegment<byte>(buffer));
         }
 
-        private byte[] FlushBuffer()
+        private static void PushHeaderLinesToStack(IEnumerable<(HttpHeaderLineType lineType, string line)> headerLines, Queue<(HttpHeaderLineType lineType, string line)> headerLineStack)
         {
-            var buffer = (byte[])_buffer.Clone();
-
-            Array.Resize(ref _buffer, 0);
-
-            return buffer;
+            foreach ((HttpHeaderLineType lineType, string line) headerLine in headerLines)
+            {
+                headerLineStack.Enqueue(headerLine);
+            }
         }
     }
 }

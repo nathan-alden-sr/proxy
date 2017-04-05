@@ -8,6 +8,11 @@ namespace NathanAlden.Proxy.Http
     {
         private static readonly char[] _space = { ' ' };
 
+        public RequestLine(string method, string requestUri, string httpVersion)
+            : this(method, requestUri, ParseRequestUri(requestUri), httpVersion)
+        {
+        }
+
         private RequestLine(string method, string requestUri, Uri parsedRequestUri, string httpVersion)
         {
             Method = method;
@@ -27,16 +32,16 @@ namespace NathanAlden.Proxy.Http
             return $"{Method} {RequestUri} {HttpVersion}";
         }
 
+        private static Uri ParseRequestUri(string requestUri)
+        {
+            return Uri.TryCreate(requestUri, UriKind.RelativeOrAbsolute, out Uri parsedRequestUri) ? parsedRequestUri : null;
+        }
+
         public static RequestLine Parse(string requestLine)
         {
             string[] requestLineParts = requestLine?.Split(_space, 3, StringSplitOptions.RemoveEmptyEntries);
 
-            if (requestLineParts?.Length != 3)
-            {
-                return null;
-            }
-
-            return Uri.TryCreate(requestLineParts[1], UriKind.RelativeOrAbsolute, out Uri requestUri) ? new RequestLine(requestLineParts[0], requestLineParts[1], requestUri, requestLineParts[2]) : null;
+            return requestLineParts?.Length == 3 ? new RequestLine(requestLineParts[0], requestLineParts[1], requestLineParts[2]) : null;
         }
     }
 }
