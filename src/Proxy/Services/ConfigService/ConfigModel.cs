@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net;
 using NathanAlden.Proxy.Hosts;
+using Serilog.Events;
 using YamlDotNet.Serialization;
 
 namespace NathanAlden.Proxy.Services.ConfigService
@@ -13,6 +14,7 @@ namespace NathanAlden.Proxy.Services.ConfigService
         private BindingsModel _bindings = new BindingsModel();
         private IEnumerable<string> _disallowedHosts = Enumerable.Empty<string>();
         private ForwardProxiesModel _forwardProxies = new ForwardProxiesModel();
+        private LoggingModel _logging = new LoggingModel();
         private OptionsModel _options = new OptionsModel();
         private SocketsModel _sockets = new SocketsModel();
 
@@ -20,6 +22,12 @@ namespace NathanAlden.Proxy.Services.ConfigService
         {
             get => _bindings;
             set => _bindings = value ?? new BindingsModel();
+        }
+
+        public ForwardProxiesModel ForwardProxies
+        {
+            get => _forwardProxies;
+            set => _forwardProxies = value ?? new ForwardProxiesModel();
         }
 
         public IEnumerable<string> DisallowedHosts
@@ -30,10 +38,10 @@ namespace NathanAlden.Proxy.Services.ConfigService
 
         public IEnumerable<Host> ParsedDisallowedHosts => DisallowedHosts.Select(x => Host.TryParse(x, out Host host) ? host : null).Where(x => x != null);
 
-        public ForwardProxiesModel ForwardProxies
+        public LoggingModel Logging
         {
-            get => _forwardProxies;
-            set => _forwardProxies = value ?? new ForwardProxiesModel();
+            get => _logging;
+            set => _logging = value ?? new LoggingModel();
         }
 
         public SocketsModel Sockets
@@ -116,6 +124,11 @@ namespace NathanAlden.Proxy.Services.ConfigService
                     }
                 }
             }
+        }
+
+        public class LoggingModel
+        {
+            public LogEventLevel MinimumLevel { get; set; } = LogEventLevel.Information;
         }
 
         public class SocketsModel

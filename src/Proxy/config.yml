@@ -35,6 +35,9 @@ disallowedHosts:               # Proxying to these hosts is disallowed. Effectiv
 #- example.com
 #- .example.com
 
+logging:
+  minimumLevel: Information    # Options: Verbose, Debug, Information, Warning, Error, Fatal
+
 sockets:
   receiveTimeout: 120000       # The timeout, in milliseconds, of all socket receive operations. Default is 120000 (2 minutes).
   sendTimeout: 120000          # The timeout, in milliseconds, of all socket send operations. Default is 120000 (2 minutes).

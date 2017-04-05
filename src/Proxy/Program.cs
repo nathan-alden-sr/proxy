@@ -25,17 +25,17 @@ namespace NathanAlden.Proxy
             Console.WriteLine("Press CTRL+C to exit");
             Console.WriteLine();
 
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.ColoredConsole()
-                .MinimumLevel.Verbose()
-                .CreateLogger();
-
             try
             {
                 InitializeAutofac();
                 InitializeConfig();
 
                 var configService = _container.Resolve<IConfigService>();
+
+                Log.Logger = new LoggerConfiguration()
+                    .WriteTo.ColoredConsole()
+                    .MinimumLevel.Is(configService.Config.Logging.MinimumLevel)
+                    .CreateLogger();
 
                 ConfigModel.ForwardProxiesModel.ForwardProxyModel httpForwardProxy = configService.Config.ForwardProxies?.Http;
                 ConfigModel.ForwardProxiesModel.ForwardProxyModel httpsForwardProxy = configService.Config.ForwardProxies?.Https;

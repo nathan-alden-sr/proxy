@@ -184,27 +184,31 @@ namespace NathanAlden.Proxy.Services.DownstreamClientService
                              _downstreamClient.Flush();
 
                              LogDownstreamText(LogEventLevel.Information).LeftArrow(true).Text(responseStatusLine.ToString()).Write();
-                             LogForwardProxyText(LogEventLevel.Information).LeftArrow(true).Text($"{requestLine}{(hostHeader != null ? $", {hostHeader}" : "")}").Write();
 
-                             _upstreamServer.WriteRequestLine(requestLine);
-                             _upstreamServer.WriteHeaders(hostHeader);
-                             _upstreamServer.WriteNewLine();
-
-                             (GetResponseStatusLineResult result, ResponseStatusLine responseStatusLine) responseStatusLineResult = _upstreamServer.GetResponseStatusLine();
-
-                             switch (responseStatusLineResult.result)
+                             if (forwardProxy != null)
                              {
-                                 case GetResponseStatusLineResult.Success:
-                                     LogForwardProxyText(LogEventLevel.Information).RightArrow(true).Text(responseStatusLineResult.responseStatusLine.ToString()).Write();
-                                     break;
-                                 case GetResponseStatusLineResult.InvalidResponseStatusLine:
-                                     LogForwardProxyText(LogEventLevel.Error, "Invalid response status line").Write();
-                                     break;
-                                 default:
-                                     throw new ArgumentOutOfRangeException();
-                             }
+                                 LogForwardProxyText(LogEventLevel.Information).LeftArrow(true).Text($"{requestLine}{(hostHeader != null ? $", {hostHeader}" : "")}").Write();
 
-                             _upstreamServer.GetHeaders();
+                                 _upstreamServer.WriteRequestLine(requestLine);
+                                 _upstreamServer.WriteHeaders(hostHeader);
+                                 _upstreamServer.WriteNewLine();
+
+                                 (GetResponseStatusLineResult result, ResponseStatusLine responseStatusLine) responseStatusLineResult = _upstreamServer.GetResponseStatusLine();
+
+                                 switch (responseStatusLineResult.result)
+                                 {
+                                     case GetResponseStatusLineResult.Success:
+                                         LogForwardProxyText(LogEventLevel.Information).RightArrow(true).Text(responseStatusLineResult.responseStatusLine.ToString()).Write();
+                                         break;
+                                     case GetResponseStatusLineResult.InvalidResponseStatusLine:
+                                         LogForwardProxyText(LogEventLevel.Error, "Invalid response status line").Write();
+                                         break;
+                                     default:
+                                         throw new ArgumentOutOfRangeException();
+                                 }
+
+                                 _upstreamServer.GetHeaders();
+                             }
                          }
                          else
                          {
