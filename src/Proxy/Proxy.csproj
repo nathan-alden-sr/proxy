@@ -2,12 +2,12 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
     <RootNamespace>NathanAlden.Proxy</RootNamespace>
     <AssemblyName>NathanAlden.Proxy</AssemblyName>
-    <PackageTargetFallback>$(PackageTargetFallback);dotnet</PackageTargetFallback>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
+    <StartupObject>NathanAlden.Proxy.Program</StartupObject>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -24,13 +24,13 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Autofac" Version="4.4.0" />
-    <PackageReference Include="Serilog" Version="2.4.0" />
-    <PackageReference Include="Serilog.Sinks.ColoredConsole" Version="2.0.0" />
-    <PackageReference Include="System.Reactive" Version="3.1.1" />
+    <PackageReference Include="Autofac" Version="4.8.1" />
+    <PackageReference Include="Serilog" Version="2.7.1" />
+    <PackageReference Include="Serilog.Sinks.ColoredConsole" Version="3.0.1" />
+    <PackageReference Include="System.Reactive" Version="4.1.0" />
     <PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.3.0" />
-    <PackageReference Include="System.ValueTuple" Version="4.3.0" />
-    <PackageReference Include="YamlDotNet" Version="4.1.0" />
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+    <PackageReference Include="YamlDotNet" Version="5.0.1" />
   </ItemGroup>
 
 </Project>
